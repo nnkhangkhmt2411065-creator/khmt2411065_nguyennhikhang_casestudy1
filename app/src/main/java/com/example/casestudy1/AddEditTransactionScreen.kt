@@ -1,154 +1,141 @@
 package com.example.casestudy1
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditTransactionScreen(
-    screenTitle: String = "Thêm giao dịch",
-    initialAmount: String = "",
-    initialNote: String = ""
+    onNavigateBack: () -> Unit = {}
 ) {
-    var isExpense by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val dbHelper = remember { DatabaseHelper(context) }
+
+    var title by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("Expense") } // "Income" hoặc "Expense"
     var category by remember { mutableStateOf("Ăn uống") }
-    var amount by remember { mutableStateOf(initialAmount) }
-    var date by remember { mutableStateOf("12/04/2025") }
-    var note by remember { mutableStateOf(initialNote) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // 1. Header Toolbar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-            }
-            Text(
-                text = screenTitle,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Thêm giao dịch", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+                    }
+                }
             )
-            Spacer(modifier = Modifier.width(48.dp))
         }
-
-        // 2. Nút chuyển Chi tiêu / Thu nhập
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = { isExpense = true },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isExpense) Color(0xFFFF5252) else Color.LightGray
-                )
-            ) {
-                Text("Chi tiêu", color = Color.White)
-            }
-            Button(
-                onClick = { isExpense = false },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (!isExpense) Color(0xFF4CAF50) else Color.LightGray
-                )
-            ) {
-                Text("Thu nhập", color = Color.White)
-            }
-        }
-
-        // 3. Ô Danh mục
-        OutlinedTextField(
-            value = category,
-            onValueChange = { category = it },
-            label = { Text("Danh mục") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // 4. Ô Số tiền
-        OutlinedTextField(
-            value = amount,
-            onValueChange = { amount = it },
-            label = { Text("Số tiền") },
-            placeholder = { Text("Nhập số tiền") },
-            suffix = { Text("đ") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // 5. Ô Ngày giao dịch
-        OutlinedTextField(
-            value = date,
-            onValueChange = { date = it },
-            label = { Text("Ngày giao dịch") },
-            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // 6. Ô Ghi chú
-        OutlinedTextField(
-            value = note,
-            onValueChange = { note = it },
-            label = { Text("Ghi chú") },
-            placeholder = { Text("Nhập ghi chú (tùy chọn)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // 7. Nút Lưu
-        Button(
-            onClick = { },
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A73E8))
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Lưu", fontSize = 16.sp, color = Color.White)
+            // Chọn Thu nhập / Chi tiêu
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { selectedType = "Expense" },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedType == "Expense") Color(0xFFC62828) else Color.LightGray
+                    )
+                ) {
+                    Text("Chi tiêu", color = Color.White)
+                }
+
+                Button(
+                    onClick = { selectedType = "Income" },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedType == "Income") Color(0xFF2E7D32) else Color.LightGray
+                    )
+                ) {
+                    Text("Thu nhập", color = Color.White)
+                }
+            }
+
+            // Nhập tiêu đề
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Tên giao dịch (VD: Ăn trưa, Lương...)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Nhập số tiền
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { amount = it },
+                label = { Text("Số tiền (VNĐ)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+
+            // Nhập danh mục
+            OutlinedTextField(
+                value = category,
+                onValueChange = { category = it },
+                label = { Text("Danh mục (VD: Ăn uống, Di chuyển, Mua sắm)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Nút Lưu giao dịch vào SQLite
+            Button(
+                onClick = {
+                    val amountValue = amount.toDoubleOrNull()
+                    if (title.isBlank() || amountValue == null || amountValue <= 0) {
+                        Toast.makeText(context, "Vui lòng nhập đầy đủ tên và số tiền hợp lệ!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                        val result = dbHelper.insertTransaction(
+                            title = title,
+                            amount = amountValue,
+                            type = selectedType,
+                            date = currentDate,
+                            category = category
+                        )
+
+                        if (result != -1L) {
+                            Toast.makeText(context, "Lưu giao dịch thành công!", Toast.LENGTH_SHORT).show()
+                            onNavigateBack()
+                        } else {
+                            Toast.makeText(context, "Lỗi khi lưu vào Database!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("LƯU GIAO DỊCH", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
-}
-
-// Màn hình 1: THÊM GIAO DỊCH
-@Preview(showBackground = true, name = "1. Thêm giao dịch")
-@Composable
-fun PreviewAddTransactionScreen() {
-    AddEditTransactionScreen(
-        screenTitle = "Thêm giao dịch",
-        initialAmount = "",
-        initialNote = ""
-    )
-}
-
-// Màn hình 2: SỬA GIAO DỊCH
-@Preview(showBackground = true, name = "2. Sửa giao dịch")
-@Composable
-fun PreviewEditTransactionScreen() {
-    AddEditTransactionScreen(
-        screenTitle = "Sửa giao dịch",
-        initialAmount = "100.000",
-        initialNote = "Ăn trưa"
-    )
 }
